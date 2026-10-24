@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>矩阵678推演 </title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{box-sizing:border-box;font-family:system-ui, sans-serif;}
+body{padding:12px;background:#f4f6f8;margin:0;}
+.container{max-width:1600px;margin:0 auto;background:#fff;padding:16px;border-radius:12px;box-shadow:0 2px 10px #00000015;}
+h2{margin-top:0;color:#222;font-size:18px;}
+.info{background:#fff7cc;padding:12px;border-radius:8px;margin-bottom:16px;border:1px solid #f3e28e;font-size:14px;line-height:1.5;}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
+button{padding:12px 14px;font-size:15px;cursor:pointer;border:none;border-radius:6px;background:#2563eb;color:white;min-height:44px;}
+button#reset{background:#dc2626;}
+button#batchAdd{background:#059669;}
+button#exportCsv{background:#7c3aed;}
+button:hover{opacity:0.9;}
+button:active{opacity:0.8;}
+button:disabled{background:#94a3b8 !important;cursor:not-allowed;opacity:0.7;}
+.matrixWrap{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px;}
+@media(min-width:900px){
+    .matrixWrap{grid-template-columns:1fr 1fr 1fr;}
+}
+.matrixBox{border:2px solid #333;padding:14px;border-radius:10px;background:#f8faff;min-height:220px;transition: all 0.3s;}
+.matrixBox.flash{
+    animation: flashAnim 0.6s;
+}
+@keyframes flashAnim{
+    0%{background:#f8faff;}
+    50%{background:#ffd700;}
+    100%{background:#f8faff;}
+}
+.vertex{font-weight:bold;font-size:16px;color:#b91c1c;margin-bottom:8px;}
+.slots{display:grid;gap:6px;margin-top:10px;}
+.slot{border:1px solid #94a3b8;padding:8px;text-align:center;border-radius:6px;background:#fff;min-height:42px;font-size:13px;}
+.queueBox{border:1px solid #aaa;padding:10px;border-radius:8px;background:#fefefe;margin-bottom:12px;font-size:13px;word-break:break-all;}
+.log{height:180px;overflow-y:auto;border:1px solid #ccc;padding:10px;border-radius:6px;background:#111;color:#0f0;font-family:monospace;font-size:12px;white-space:pre-line;}
+.logReward{color:#ff6666;}
+.logPromote{color:#00ffff;}
+.logP3Out{color:#ffffff;}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
+.stat>div{background:#eef2ff;padding:10px;border-radius:8px;border:1px solid #c7d2fe;font-size:13px;}
+.p3Reward{color:#dc2626;font-weight:bold;font-size:15px;}
+.chartBox{height:280px;margin-bottom:16px;border:1px solid #ddd;padding:10px;border-radius:8px;}
+.configPanel{border:1px solid #999;background:#f0f7ff;padding:14px;border-radius:10px;margin-bottom:16px; display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;}
+.configPanel h3{grid-column:1/-1;margin:0 0 8px;font-size:16px;}
+.configItem label{display:block;font-size:13px;color:#333;margin-bottom:4px;}
+.configItem input{padding:10px;width:100%;font-size:15px;border:1px solid #aaa;border-radius:4px;}
+.criticalBox{background:#fff1f2;border:1px solid #fda4af;padding:12px;border-radius:8px;margin-bottom:16px;font-size:14px;line-height:1.5;}
+.criticalBox span{font-weight:bold;color:#b91c1c;word-break:break-all;}
+input[type="number"]{min-height:44px;}
+</style>
+</head>
+<body>
+<div class="container">
+    <h2>6/7/8 静态矩阵公排推演</h2>
+    <div class="info">
+        规则说明：项目分P1团/P2团/P3团，三矩阵阵列成团点位数为分别6/7/8；新入点位从P1激活开始，P1满团顶点晋级P2 奖励1200；P2满团顶点晋级P3  奖励3000；P3满团顶点出局拿10000奖励。<br />
+    </div>
+    <div class="configPanel">
+        <h3>⚙️全局参数配置</h3>
+        <div class="configItem">
+            <label>P1点位激活费用</label>
+            <input id="inpSinglePay" type="number" value="2400" disabled>
+        </div>
+        <div class="configItem">
+            <label>-负债运营财务成本</label>
+            <input id="inpSingleCost" type="number" value="2000" disabled>
+        </div>
+        <div class="configItem">
+            <label>P1矩阵空点位数量</label>
+            <input id="inpP1SlotCnt" type="number" value="5" disabled>
+        </div>
+        <div class="configItem">
+            <label>P1成团晋级奖励</label>
+            <input id="inpRewardP1" type="number" value="1200" disabled>
+        </div>
+        <div class="configItem">
+            <label>P2矩阵空点位数量</label>
+            <input id="inpP2SlotCnt" type="number" value="6" disabled>
+        </div>
+        <div class="configItem">
+            <label>P2成团晋级奖励</label>
+            <input id="inpRewardP2" type="number" value="3000" disabled>
+        </div>
+        <div class="configItem">
+            <label>P3矩阵空点位数量</label>
+            <input id="inpP3SlotCnt" type="number" value="7" disabled>
+        </div>
+        <div class="configItem">
+            <label>P3出局奖励</label>
+            <input id="inpRewardP3" type="number" value="10000" disabled>
+        </div>
+        <div class="configItem" style="grid-column:1/-1;display:none;">
+            <button id="applyConfig">✅应用参数</button>
+        </div>
+    </div>
+    <div class="criticalBox">
+        <h3>📊精准测算（真实滑落队列仿真）</h3>
+        <div>理论临界总点位：<span id="criticalPoint">--</span></div>
+        <div style="font-size:12px;color:#666;margin-top:6px;">
+            算法说明：临界值仅在参数变更时一次性计算；真实出局周期=各层空位数之积（默认5×6×7=210）。
+        </div>
+    </div>
+    <div class="row">
+        <button id="addOne">➕新增1个点位入场</button>
+        <button id="batchAdd">📦批量新增点位</button>
+        <input id="batchNum" type="number" value="10" min="1">
+        <button id="reset">🔄重置全部</button>
+    </div>
+    <div class="stat">
+        <div>总入场点位：<span id="totalPoint">0</span></div>
+        <div>资金池余额：<span id="fundPool">0</span> 元</div>
+        <div>累计发放奖励：<span id="totalReward">0</span> 元</div>
+        <div>
+            累计P3出局点位：<span id="p3OutCount">0</span><br>
+            奖励合计：<span id="p3OutReward" class="p3Reward">0</span> 元
+        </div>
+        <div>P1‑P2晋级：<span id="p1p2Info">数量：0，奖励合计：0元</span></div>
+        <div>P2‑P3晋级：<span id="p2p3Info">数量：0，奖励合计：0元</span></div>
+    </div>
+    <div class="chartBox">
+        <canvas id="fundChart"></canvas>
+    </div>
+    <div class="matrixWrap">
+        <div class="matrixBox" id="boxP1">
+            <h3>P1矩阵</h3>
+            <div class="vertex">顶点点位：<span id="p1Vertex">-</span></div>
+            <div>下属空位：</div>
+            <div class="slots" id="p1SlotsWrap"></div>
+            <div class="queueBox">排队池：<span id="p1Queue">[]</span></div>
+        </div>
+        <div class="matrixBox" id="boxP2">
+            <h3>P2矩阵</h3>
+            <div class="vertex">顶点点位：<span id="p2Vertex">-</span></div>
+            <div>下属空位：</div>
+            <div class="slots" id="p2SlotsWrap"></div>
+            <div class="queueBox">排队池：<span id="p2Queue">[]</span></div>
+        </div>
+        <div class="matrixBox" id="boxP3">
+            <h3>P3矩阵</h3>
+            <div class="vertex">顶点点位：<span id="p3Vertex">-</span></div>
+            <div>下属空位：</div>
+            <div class="slots" id="p3SlotsWrap"></div>
+            <div class="queueBox">排队池：<span id="p3Queue">[]</span></div>
+        </div>
+    </div>
+    <div>事件日志：</div>
+    <div class="log" id="logBox"></div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+// ========== 性能控制常量【可自行调参】 ==========
+const BATCH_SIZE = 200;
+const MAX_LOG_STORE = 800;
+const MAX_CHART_POINT = 300;
+const MAX_SIM_N = 200000;
+const FULL_CSV_LOG = false;
+
+let CONFIG = {
+    singlePay: 2400,
+    singleCost: 2000,
+    p1SlotCount: 5,
+    rewardP1: 1200,
+    p2SlotCount: 6,
+    rewardP2: 3000,
+    p3SlotCount: 7,
+    rewardP3: 10000
+};
+
+let __isBatching = false;
+let __suppressFlash = false;
+
+function createMatrixState(slotCount){
+    return {
+        vertex: null,
+        slots: Array(slotCount).fill(null),
+        queue: [],
+        slotCount: slotCount
+    }
+}
+
+let state = {
+    totalPoint: 0,
+    fundPool: 0,
+    totalReward: 0,
+    p3OutCount:0,
+    p3OutTotalReward: 0,
+    p1ToP2Count:0,
+    p1ToP2TotalReward:0,
+    p2ToP3Count:0,
+    p2ToP3TotalReward:0,
+    p1: createMatrixState(CONFIG.p1SlotCount),
+    p2: createMatrixState(CONFIG.p2SlotCount),
+    p3: createMatrixState(CONFIG.p3SlotCount),
+    logHtml: [],
+    csvRows: [],
+    chartData: {
+        labels: [],
+        fundData: []
+    }
+};
+
+const ctx = document.getElementById('fundChart').getContext('2d');
+let fundChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: state.chartData.labels,
+        datasets: [{
+            label: '资金池余额(元)',
+            data: state.chartData.fundData,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37,99,235,0.1)',
+            fill:true,
+            tension:0.2
+        }]
+    },
+    options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        animation: { duration: 300 },
+        scales:{
+            y:{title:{display:true,text:"资金池"}}
+        }
+    }
+});
+
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+function addLogHtml(text, isReward=false, flag=''){
+    let htmlText;
+    if(isReward){
+        htmlText = `<div class="logReward">${text}</div>`;
+    }else if(flag === 'promote'){
+        htmlText = `<div class="logPromote">${text}</div>`;
+    }else if(flag === 'p3out'){
+        htmlText = `<div class="logP3Out">${text}</div>`;
+    }else{
+        htmlText = `<div>${text}</div>`;
+    }
+    state.logHtml.push(htmlText);
+    if(state.logHtml.length > MAX_LOG_STORE){
+        state.logHtml.shift();
+    }
+    if(FULL_CSV_LOG){
+        state.csvRows.push([
+            state.totalPoint,
+            state.fundPool,
+            state.totalReward,
+            state.p3OutCount,
+            state.p3OutTotalReward,
+            state.p1ToP2Count,
+            state.p1ToP2TotalReward,
+            state.p2ToP3Count,
+            state.p2ToP3TotalReward,
+            text
+        ]);
+    }
+}
+
+function isMatrixFull(mat){
+    if(mat.vertex === null) return false;
+    return mat.slots.every(x=>x!==null);
+}
+
+function flashMatrix(boxId){
+    if(__suppressFlash) return;
+    const box = $(boxId);
+    box.classList.add("flash");
+    setTimeout(()=>box.classList.remove("flash"),600);
+}
+
+function handleMatrixFull(mat, levelName, nextMatrix, rewardVal, boxDomId, pointId){
+    flashMatrix(boxDomId);
+    const oldVertex = mat.vertex;
+    const logText = `【${levelName}满团】点位${oldVertex}，发放奖励${rewardVal}元`;
+    addLogHtml(logText,true);
+    state.totalReward += rewardVal;
+    state.fundPool -= rewardVal;
+
+    if(levelName === "P1"){
+        state.p1ToP2Count +=1;
+        state.p1ToP2TotalReward += rewardVal;
+    }else if(levelName === "P2"){
+        state.p2ToP3Count +=1;
+        state.p2ToP3TotalReward += rewardVal;
+    }
+
+    mat.queue.push(...mat.slots);
+    mat.slots = Array(mat.slotCount).fill(null);
+    if(mat.queue.length>0){
+        mat.vertex = mat.queue.shift();
+        addLogHtml(`【${levelName}顺位顶上】点位${mat.vertex}成为新${levelName}顶点`);
+    }else{
+        mat.vertex = null;
+        addLogHtml(`【${levelName}】排队池空，等待点位`);
+    }
+
+    if(levelName === "P3"){
+        state.p3OutCount +=1;
+        state.p3OutTotalReward += rewardVal;
+        addLogHtml(`【P3出局】点位${oldVertex}完成出局`, false, 'p3out');
+        return null;
+    }else{
+        enqueueToMatrix(nextMatrix, oldVertex);
+        addLogHtml(`【晋级】点位${oldVertex}晋级进入${levelName==="P1"?"P2":"P3"}矩阵`,false,'promote');
+        return oldVertex;
+    }
+}
+
+function enqueueToMatrix(mat, pointId){
+    if(mat.vertex === null){
+        mat.vertex = pointId;
+        addLogHtml(`【进入矩阵】点位${pointId}成为矩阵顶点`);
+        return;
+    }
+    const emptyIdx = mat.slots.findIndex(x=>x===null);
+    if(emptyIdx !== -1){
+        mat.slots[emptyIdx] = pointId;
+        addLogHtml(`【填充】点位${pointId}填入矩阵下属第${emptyIdx+1}空位`);
+    }
+    if(isMatrixFull(mat)){
+        let nextMat, reward, level, boxId;
+        if(mat === state.p1){ nextMat = state.p2; reward=CONFIG.rewardP1; level="P1"; boxId="#boxP1";}
+        else if(mat === state.p2){ nextMat = state.p3; reward=CONFIG.rewardP2; level="P2"; boxId="#boxP2";}
+        else if(mat === state.p3){ nextMat = null; reward=CONFIG.rewardP3; level="P3"; boxId="#boxP3";}
+        handleMatrixFull(mat, level, nextMat, reward, boxId, pointId);
+    }
+}
+
+function stepOnePoint(){
+    state.totalPoint++;
+    const pointId = "A"+state.totalPoint;
+    addLogHtml(`>>新增点位【${pointId}】，P1点位激活费用${CONFIG.singlePay}，扣减负债运营财务成本${CONFIG.singleCost}`);
+    state.fundPool += (CONFIG.singlePay - CONFIG.singleCost);
+    enqueueToMatrix(state.p1, pointId);
+
+    state.chartData.labels.push(state.totalPoint+"点位");
+    state.chartData.fundData.push(state.fundPool);
+    if(state.chartData.labels.length > MAX_CHART_POINT){
+        state.chartData.labels.shift();
+        state.chartData.fundData.shift();
+    }
+}
+
+function addOnePoint(){
+    stepOnePoint();
+    render();
+}
+
+async function batchAddPoint(count){
+    if(__isBatching) return;
+    __isBatching = true;
+    __suppressFlash = true;
+    const btn = $("#batchAdd");
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    fundChart.options.animation = false;
+
+    let processed = 0;
+    const total = count;
+    const processBatch = () => {
+        const end = Math.min(processed + BATCH_SIZE, total);
+        for(let i = processed; i < end; i++){
+            stepOnePoint();
+        }
+        processed = end;
+        btn.textContent = `⏳处理中 ${processed}/${total}`;
+        if(processed < total){
+            setTimeout(processBatch, 0);
+        } else {
+            __isBatching = false;
+            __suppressFlash = false;
+            btn.disabled = false;
+            btn.textContent = originalText;
+            fundChart.options.animation = { duration: 300 };
+            render();
+        }
+    };
+    processBatch();
+}
+
+function renderSlotContainer(wrapId, slotList){
+    const wrap = $(wrapId);
+    wrap.innerHTML = "";
+    const slotNum = slotList.length;
+    wrap.style.gridTemplateColumns = `repeat(${slotNum}, 1fr)`;
+    slotList.forEach((name, idx)=>{
+        const div = document.createElement("div");
+        div.className = "slot";
+        div.textContent = name ?? "空";
+        wrap.appendChild(div);
+    })
+}
+
+function render(){
+    $("#totalPoint").textContent = state.totalPoint;
+    $("#fundPool").textContent = state.fundPool;
+    $("#totalReward").textContent = state.totalReward;
+    $("#p3OutCount").textContent = state.p3OutCount;
+    $("#p3OutReward").textContent = state.p3OutTotalReward;
+    $("#p1p2Info").textContent = `数量：${state.p1ToP2Count}，奖励合计：${state.p1ToP2TotalReward}元`;
+    $("#p2p3Info").textContent = `数量：${state.p2ToP3Count}，奖励合计：${state.p2ToP3TotalReward}元`;
+
+    $("#p1Vertex").textContent = state.p1.vertex??"-";
+    $("#p1Queue").textContent = JSON.stringify(state.p1.queue);
+    renderSlotContainer("#p1SlotsWrap", state.p1.slots);
+
+    $("#p2Vertex").textContent = state.p2.vertex??"-";
+    $("#p2Queue").textContent = JSON.stringify(state.p2.queue);
+    renderSlotContainer("#p2SlotsWrap", state.p2.slots);
+
+    $("#p3Vertex").textContent = state.p3.vertex??"-";
+    $("#p3Queue").textContent = JSON.stringify(state.p3.queue);
+    renderSlotContainer("#p3SlotsWrap", state.p3.slots);
+
+    $("#logBox").innerHTML = state.logHtml.join("");
+    $("#logBox").scrollTop = $("#logBox").scrollHeight;
+
+    fundChart.data.labels = state.chartData.labels;
+    fundChart.data.datasets[0].data = state.chartData.fundData;
+    fundChart.update();
+}
+
+function exportCSV(){
+    if(!FULL_CSV_LOG){
+        alert("当前为性能模式，未实时保存全量CSV日志！如需导出完整记录，请修改代码 FULL_CSV_LOG=true 后重新推演。");
+        return;
+    }
+    let csvContent = "\ufeff总点位,资金池,累计奖励,P3出局数,P3出局奖励合计,P1P2晋级数,P1P2奖励,P2P3晋级数,P2P3奖励,事件描述\n";
+    state.csvRows.forEach(row=>{
+        csvContent += row.join(",") + "\n";
+    })
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "matrix_full_log.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function applyConfig(){
+    CONFIG.singlePay = Number($("#inpSinglePay").value);
+    CONFIG.singleCost = Number($("#inpSingleCost").value);
+    CONFIG.p1SlotCount = Number($("#inpP1SlotCnt").value);
+    CONFIG.rewardP1 = Number($("#inpRewardP1").value);
+    CONFIG.p2SlotCount = Number($("#inpP2SlotCnt").value);
+    CONFIG.rewardP2 = Number($("#inpRewardP2").value);
+    CONFIG.p3SlotCount = Number($("#inpP3SlotCnt").value);
+    CONFIG.rewardP3 = Number($("#inpRewardP3").value);
+    addLogHtml(`【参数更新】P1成团=${CONFIG.p1SlotCount+1}人，P2=${CONFIG.p2SlotCount+1}人，P3=${CONFIG.p3SlotCount+1}人`);
+    render();
+}
+
+function resetAll(){
+    state = {
+        totalPoint:0,
+        fundPool:0,
+        totalReward:0,
+        p3OutCount:0,
+        p3OutTotalReward:0,
+        p1ToP2Count:0,
+        p1ToP2TotalReward:0,
+        p2ToP3Count:0,
+        p2ToP3TotalReward:0,
+        p1: createMatrixState(CONFIG.p1SlotCount),
+        p2: createMatrixState(CONFIG.p2SlotCount),
+        p3: createMatrixState(CONFIG.p3SlotCount),
+        logHtml:["<div>✅系统重置完成</div>"],
+        csvRows:[],
+        chartData:{labels:[],fundData:[]}
+    };
+    __isBatching = false;
+    __suppressFlash = false;
+    $("#batchAdd").disabled = false;
+    $("#batchAdd").textContent = "📦批量新增点位";
+    fundChart.options.animation = { duration: 300 };
+    fundChart.data.labels = [];
+    fundChart.data.datasets[0].data = [];
+    render();
+}
+
+// 绑定事件
+$("#addOne").addEventListener('click', addOnePoint);
+$("#batchAdd").addEventListener('click', ()=>{
+    const num = parseInt($("#batchNum").value);
+    if(num>0) batchAddPoint(num);
+});
+$("#reset").addEventListener('click', resetAll);
+$("#applyConfig").addEventListener('click', applyConfig);
+
+render();
+
+});
+</script>
+</body>
+</html>
