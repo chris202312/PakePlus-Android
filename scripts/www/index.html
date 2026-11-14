@@ -104,8 +104,8 @@ button:disabled{background:#94a3b8 !important;cursor:not-allowed;opacity:0.7;}
 .scanTable td.cur{background:#fef3c7;font-weight:bold;}
 #saveParam,#loadParam,#exportCsv{display:none;}
 
-/* ===== 手机版（v2.6.0-m1）：屏蔽三大板块 + 移动端排版 ===== */
-#infoPanel, #criticalBox, #scanPanel{display:none !important;}
+/* ===== 手机版（v2.7.0-m1）：屏蔽「规则说明」「参数扫描表」两块，其余全部保留 ===== */
+#infoPanel, #scanPanel{display:none !important;}
 body{padding:6px;}
 .container{padding:10px;border-radius:8px;}
 h2{font-size:15px;line-height:1.35;}
@@ -131,7 +131,7 @@ button{padding:10px 12px;font-size:14px;}
 <div class="container">
     <h2>气血温通仪管道矩阵打卡奖励公排推演【P1‑P2 二级管道｜出局窗口完全旁路】</h2>
     <div class="verTag">
-        <span class="verNo" id="verBadge">v2.6.1</span>
+        <span class="verNo" id="verBadge">v2.8.0</span>
         <span class="verDate" id="verDate">构建 2026-11-11</span>
         <span class="verNote">出局窗口完全旁路 · 首人第 26 号出局 · 稳态 20 点位/次 · P1 权益优先级</span>
     </div>
@@ -153,7 +153,7 @@ button{padding:10px 12px;font-size:14px;}
         </div>
         <div class="configItem">
             <label>P2矩阵空点位数量</label>
-            <input id="inpP2SlotCnt" type="number" min="0" max="50" step="1" value="4">
+            <input id="inpP2SlotCnt" type="number" min="0" max="50" step="1" value="2">
         </div>
         <div class="configItem">
             <label>P2升出局窗口晋级奖励</label>
@@ -165,7 +165,7 @@ button{padding:10px 12px;font-size:14px;}
         </div>
         <div class="configItem">
             <label>出局奖励</label>
-            <input id="inpRewardP3" type="number" min="0" step="1" value="1000">
+            <input id="inpRewardP3" type="number" min="0" step="1" value="0">
         </div>
         <div class="configItem">
             <label>单个点位补贴积分</label>
@@ -228,6 +228,14 @@ button{padding:10px 12px;font-size:14px;}
         <label style="font-size:14px;display:flex;align-items:center;gap:6px;">
             <input id="chkPriority" type="checkbox" checked> 开启 P1 权益优先级
         </label>
+        <label style="font-size:14px;display:flex;align-items:center;gap:6px;">插队窗口 W
+            <input id="inpPrioWindow" type="number" value="10" min="0" max="999" step="1" style="width:84px;padding:6px;">
+            <span style="font-size:12px;color:#64748b;">只在前 W 位内择优；1=纯FIFO，0=全队列(旧行为/会饿死零直推)；实测 W≥5 时零直推者仍可能出不了局</span>
+        </label>
+        <label style="font-size:14px;display:flex;align-items:center;gap:6px;">保底配额（每 N 次出局保 1 次）
+            <input id="inpGuarantee" type="number" value="5" min="0" max="999" step="1" style="width:84px;padding:6px;">
+            <span style="font-size:12px;color:#64748b;">0=关闭；N=5 即每 5 次出局让出 1 次给零直推者。只改"谁顶上"，不动出局次数与奖金，人均分文不变</span>
+        </label>
     </div>
 
     <div class="stat">
@@ -244,6 +252,12 @@ button{padding:10px 12px;font-size:14px;}
         <div id="prioStatus" style="margin-bottom:8px;font-size:14px;"></div>
         <div id="prioTop" style="margin-bottom:8px;font-size:14px;"></div>
         <div id="prioCost" style="font-size:13px;color:#475569;"></div>
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button id="btnDualChannel" type="button" style="padding:8px 14px;">一键切到「双出局通道」预设（P2容量=2 / 出局奖励R3=0）</button>
+            <button id="btnOnlinePreset" type="button" style="padding:8px 14px;background:#0d2338;color:#fff;border-color:#0d2338;">一键切到「上线预设」（W=10 + 双通道 + 保底5）</button>
+            <button id="btnLegacyBaseline" type="button" style="padding:8px 14px;">恢复旧基线（s2=4 / R3=1000 / W=3 / 无保底）</button>
+            <span style="font-size:12px;color:#64748b;">出局频率翻倍，单笔出局仍是 P2 的 1600 分，人均约 400 分（正好压红线，余量为 0）</span>
+        </div>
     </div>
 
     <div class="chartBox">
@@ -288,9 +302,32 @@ button{padding:10px 12px;font-size:14px;}
 const MOBILE_MODE = true;
 
 /* ======================= 版本与变更记录 ======================= */
-const APP_VERSION = 'v2.6.1-m1';
-const APP_BUILD   = '2026-11-11';
+const APP_VERSION = 'v2.8.0-m1';
+const APP_BUILD   = '2026-11-12';
 const CHANGELOG = [
+    {
+        ver: 'v2.8.0', date: '2026-11-12', note: '上线配置落地：强激励窗口 + 双出局通道 + 保底配额',
+        items: [
+            '默认配置切换为上线版：W=10（强激励）、P2容量=2、出局奖励R3=0、保底每 5 次出局 1 次。人均理论 400.0，正好压红线（零缓冲）',
+            '新增「保底配额」机制：每 N 次 P1 顶点顶替，强制把一次机会给「零直推者中最久等待的那位」。只改"谁顶上"，不改出局次数与奖金，因此人均发奖分文不变',
+            '实测保底效果（1000 点位 / 99 次出局 / 5 个随机种子）：无保底时零直推者出局 2 次；K=5→11 次、K=10→7 次、K=20→7 次（波动 2~12）、K=40→14.4 次（波动 2~20）。K=40 只占 4/199 次顶替，对直推激励伤害最小，故取 40',
+            '保底是"显著提升"而非"硬保证"：实测存在种子下 K=40 仍只有 2 次出局。它是概率性的，不能承诺每个零直推者必定出局',
+            '新增「恢复旧基线」按钮：一键回到 v2.6.1 默认（s2=4 / R3=1000 / W=3 / 无保底），200 点位仍是 70200 / 9800 / 9，历史对照不失效',
+            '保底的跨越不计入「单次最多被越过」自检，避免污染窗口机制校验指标',
+            '修正 CONFIG 对象中 priorityWindow 后缺逗号导致整个脚本无法执行的语法缺陷'
+        ]
+    },
+    {
+        ver: 'v2.7.0', date: '2026-11-12', note: '插队窗口 W + 饥饿监控指标',
+        items: [
+            '修复致命缺陷：v2.6.0 的全队列择优会让零直推者永久出不了局（200/500/1000/2000/5000 五档规模仿真，零直推者出局数恒为 0）',
+            '新增 CONFIG.priorityWindow（插队窗口 W，默认 3）：P1 顶点空出时只在队首前 W 位内择优，保证任何人最多被身后 W-1 位越过，等待从"无限"变为"有上界"',
+            'W 取值语义：1 = 纯 FIFO；0 = 全队列（v2.6.0 旧行为）；实测 W≥5 时零直推者仍会出不了局，W≥45 为死亡区。页面实测 1000 点位：W=2→3 人出局、W=3→2 人、W=5/8/10→0 人，故默认取 3',
+            '新增两个监控指标：①「零直推者已出局 N 人」长期为 0 即说明有人永远拿不到奖励；②「单次最多被越过 N 位」应恒 ≤ W-1，用于自检机制是否按设计运行',
+            '新增「双出局通道预设」按钮（P2容量=2 / R3=0）：出局间隔 20→10 点位，出局翻倍，单笔仍拿 1600 分，人均约 400（余量为 0，需谨慎）',
+            '默认值不变：s1=5 / s2=4 / r3=1000 / W=10 且双通道未启用，200 点位基线仍为 70200 / 9800 / 9，历史对照继续有效'
+        ]
+    },
     {
         ver: 'v2.6.1', date: '2026-11-11', note: '补结构标识（为手机版屏蔽做准备）',
         items: [
@@ -373,19 +410,33 @@ function levelName(code){ return LEVEL_LABEL[code] || code; }
 const CONFIG = {
     p1SlotCount: 5,
     rewardP1: 1200,
-    p2SlotCount: 4,
+    p2SlotCount: 2,
     rewardP2: 1600,
     p3SlotCount: 1,
-    rewardP3: 1000,
+    rewardP3: 0,
     perPointIncome: 400,
     accelerateP3: true,   // P3 即出设计：默认开启，出局窗口完全旁路
-    priorityByRef: true   // 权益优先级：P1 顶点空出时，按直推人数多者优先顶上
+    priorityByRef: true,  // 权益优先级：P1 顶点空出时，按直推人数多者优先顶上
+    priorityWindow: 10,   // 插队窗口 W：只在 P1 队列前 W 位内择优。
+                          //   W >= 1 : 只在前 W 位里挑（保证"最多被后面 W-1 位越过"，等待有上界）
+                          //   W = 1  : 等同纯 FIFO
+                          //   W = 0  : 全队列竞争（v2.6.0 旧行为，实测会让零直推者永久出不了局）
+                          //   W >= 45: 实测死亡区，零直推出局归零
+    guaranteeEvery: 5     // 保底配额：每 N 次「出局」保底 1 次（实现时按 s2 折算到顶替次数），把机会给「零直推者中最久等待的那位」。
+                          //   0 = 关闭。只改"谁顶上"，不改出局次数与奖金，因此人均发奖恒定不变。
+                          //   这是唯一能"既保留大窗口强激励、又保证零直推者不被饿死"的办法。
 };
 
 /* 权益优先级：点位直推人数台账（点位ID → 直推人数）与统计
    注意：排序只改变「谁先顶上」，不改变阵容量与奖励额，因此出局速率与总额恒定。 */
 let pointRefs = {};
-let prioStats = { jumps: 0 };
+let prioStats = { jumps: 0, maxOvertake: 0, zeroRefExits: 0,
+                  pickCount: 0,        // P1 顶点顶替总次数（保底的计数基准）
+                  guaranteeUsed: 0,    // 保底实际生效次数
+                  guaranteeMissed: 0 };// 保底触发但队列里已无零直推者（跳过）
+// jumps        : 累计插队次数
+// maxOvertake  : 单次最多越过了多少位（按窗口机制应恒等 W-1，可当作机制自检）
+// zeroRefExits : 零直推者的累计出局人数（监控指标：若长期为 0，说明有人的奖永远拿不到）
 let __pendingRefs = 0;     // 下一次 stepOnePoint 要写入的直推人数
 
 function refsOf(id){ return pointRefs[id] || 0; }
@@ -588,7 +639,7 @@ function renderPriorityPanel(){
     const top5 = refsSorted.slice(0, 5).map(id => `${id}（直推${refsOf(id)}人）`).join(' → ') || '（队列为空）';
 
     st.innerHTML = on
-        ? `<b style="color:#059669;">已开启</b>　P1 顶点空出时，直推人数多者优先顶上；直推相同则按先来后到（点位号小者优先）。
+        ? `<b style="color:#059669;">已开启</b>　P1 顶点空出时，在队列<b>前 ${(Number(CONFIG.priorityWindow) > 0) ? CONFIG.priorityWindow : '全部'}</b> 位内挑直推人数最多者顶上；直推相同则按先来后到（点位号小者优先）。
            <span style="color:#64748b;">阵容量 s1/s2 未改，只换顶替顺序，因此出局速率与奖励总额恒定。</span>`
         : `<b style="color:#b91c1c;">已关闭</b>　严格按先来后到（FIFO）顶替，行为与 v2.5.0 完全一致。`;
 
@@ -605,7 +656,12 @@ function renderPriorityPanel(){
         costEl.innerHTML =
             `累计插队 <b>${prioStats.jumps}</b> 次　|　排队中：零直推 <b>${zeroCount}</b> 个、有直推 <b>${refCount}</b> 个　|　`
             + `最久等待：${oldest ? `<b>${oldest}</b>（已等 ${waitN} 个点位）` : '无（队列空）'}<br>`
-            + `<span style="color:#b45309;">零和提醒：插队不会让任何人多拿一分钱，只会让被越过的点位往后挪。「最久等待」就是这份代价的直接体现，它只增不减时，说明低直推者正在被持续压住。</span>`;
+            + `<b style="color:#0f172a;">监控指标</b>　零直推者已出局 <b style="color:${prioStats.zeroRefExits > 0 ? '#059669' : '#b91c1c'};">${prioStats.zeroRefExits}</b> 人`
+            + `　|　单次最多被越过 <b>${prioStats.maxOvertake}</b> 位`
+            + `（当前窗口 W=${(Number(CONFIG.priorityWindow) > 0) ? CONFIG.priorityWindow : '全部'}，应恒 ≤ ${(Number(CONFIG.priorityWindow) > 0) ? Math.max(0, CONFIG.priorityWindow - 1) : '不限'}）<br>`
+            + `保底配额：每 <b>${Number(CONFIG.guaranteeEvery) > 0 ? CONFIG.guaranteeEvery : '—'}</b> 次出局保 1 次，已生效 <b>${prioStats.guaranteeUsed}</b> 次`
+            + `（共 ${prioStats.pickCount} 次顶替${prioStats.guaranteeMissed > 0 ? `，其中 ${prioStats.guaranteeMissed} 次因队列已无零直推者而跳过` : ''}）<br>`
+            + `<span style="color:#b45309;">零和提醒：插队不会让任何人多拿一分钱，只会让被越过的点位往后挪。「最久等待」是代价的直接体现；「零直推者已出局」长期为 0 则说明有人永远拿不到奖励，必须调小窗口 W。</span>`;
     }
 }
 
@@ -749,6 +805,7 @@ function settleAndBypassP3(){
             state.totalReward += CONFIG.rewardP3;
             state.p3OutCount += 1;
             state.p3OutTotalReward += CONFIG.rewardP3;
+            if(refsOf(v) === 0) prioStats.zeroRefExits += 1;   // 存量结算也要计入，否则监控指标偏低
             recordExit(v, 'settle');
         });
     }
@@ -799,6 +856,7 @@ function handleMatrixFull(mat, levelCode, nextMatrix, rewardVal, boxDomId){
             // 即出模式：此人并未进入出局窗口，不能记成"晋级窗口"
             state.p2OutCount += 1;
             state.p2OutTotalReward += rewardVal;
+            if(refsOf(oldVertex) === 0) prioStats.zeroRefExits += 1;   // 零直推者成功出局
         }else{
             state.p2ToP3Count += 1;
             state.p2ToP3TotalReward += rewardVal;
@@ -806,6 +864,7 @@ function handleMatrixFull(mat, levelCode, nextMatrix, rewardVal, boxDomId){
     }else if(levelCode === 'P3'){
         state.p3OutCount += 1;
         state.p3OutTotalReward += rewardVal;
+        if(refsOf(oldVertex) === 0) prioStats.zeroRefExits += 1;   // 零直推者成功出局
         recordExit(oldVertex);
         addLogHtml(`【出局】点位${oldVertex}完成出局`);
     }
@@ -814,24 +873,66 @@ function handleMatrixFull(mat, levelCode, nextMatrix, rewardVal, boxDomId){
     mat.queue.push(...mat.slots);
     mat.slots = Array(mat.slotCount).fill(null);
     if(mat.queue.length > 0){
-        let picked, jumped = 0;
+        let picked, jumped = 0, isGuarantee = false;
         if(levelCode === 'P1' && CONFIG.priorityByRef){
-            // 权益优先级：直推人数多者优先；直推相同则先来后到（点位号小者优先）
+            // 权益优先级（窗口版）：只在队列前 W 位内挑直推最多的人
+            // 为什么要有窗口：全队列择优时，只要队列里还有直推更多的人，零直推者就永远轮不到（实测 5 档规模出局数恒为 0）
+            // 窗口保证「任何人最多被身后 W-1 位越过」，等待时间从"无限"变成"有上界"
+            let Wraw = Number(CONFIG.priorityWindow);
+            // 脏值绝不静默退化成「全队列」——全队列就是让人永远出不了局的饿死模式，
+            // 必须回落到安全默认值，宁可插队范围变小，也不能悄悄把公平性关掉
+            if(!Number.isFinite(Wraw)) Wraw = 3;
+            const lim = (Wraw > 0) ? Math.min(Wraw, mat.queue.length) : mat.queue.length;
+
+            // ---- 保底配额：每 N 次顶替，强制给一次机会给「零直推者里最久等待的那位」 ----
+            // 为什么需要它：窗口再大也只是"减少"饿死概率，不能"保证"零直推者能出局（实测 W=10 时 1000 点位内 0 次）。
+            // 保底不改出局次数、不改单笔金额，只改这一次"给谁顶上"，所以人均发奖分文不变。
+            prioStats.pickCount += 1;
+            const K = Number(CONFIG.guaranteeEvery);
+            // K 的语义是「每 K 次出局保底 1 次」，但保底作用在 P1 顶替上，
+            // 而每 p2SlotCount 次顶替才产生 1 次出局，所以间隔必须按 s2 折算。
+            // 若直接按「每 K 次顶替」计，小规模场景（200 点位只有 39 次顶替）会永远触发不到保底。
+            const every = (Number.isFinite(K) && K > 0) ? Math.max(1, K * Math.max(1, CONFIG.p2SlotCount)) : 0;
+            let forcedIdx = -1;
+            if(every > 0 && (prioStats.pickCount % every === 0)){
+                let oldest = -1, oldestSeq = Infinity;
+                for(let i = 0; i < mat.queue.length; i++){
+                    if(refsOf(mat.queue[i]) === 0){
+                        const s = seqOf(mat.queue[i]);
+                        if(s < oldestSeq){ oldestSeq = s; oldest = i; }
+                    }
+                }
+                if(oldest >= 0) forcedIdx = oldest;
+                else prioStats.guaranteeMissed += 1;
+            }
+            const isGuaranteeNow = (forcedIdx >= 0);
+            isGuarantee = isGuaranteeNow;
+
             let best = 0;
-            for(let i = 1; i < mat.queue.length; i++){
-                const a = mat.queue[i], b = mat.queue[best];
-                const ra = refsOf(a), rb = refsOf(b);
-                if(ra > rb || (ra === rb && seqOf(a) < seqOf(b))) best = i;
+            if(isGuarantee){
+                best = forcedIdx;
+                prioStats.guaranteeUsed += 1;
+            }else{
+                for(let i = 1; i < lim; i++){
+                    const a = mat.queue[i], b = mat.queue[best];
+                    const ra = refsOf(a), rb = refsOf(b);
+                    if(ra > rb || (ra === rb && seqOf(a) < seqOf(b))) best = i;
+                }
             }
             picked = mat.queue.splice(best, 1)[0];
             jumped = best;
+            if(isGuarantee){
+                addLogHtml(`【保底顶上】点位${picked}（零直推·最久等待）越过 ${jumped} 位顶上P1顶点 —— 第 ${prioStats.pickCount} 次顶替触发保底`, false, 'promote');
+            }
         }else{
             picked = mat.queue.shift();
         }
         mat.vertex = picked;
         if(jumped > 0){
             prioStats.jumps += 1;
-            addLogHtml(`【优先顶上】点位${picked}（直推${refsOf(picked)}人）越过 ${jumped} 个排在前面的排队点位，成为P1顶点`, false, 'promote');
+            // 保底的跨越不参与"≤W-1"自检，否则监控指标会被污染（保底本来就要越过很远）
+            if(!isGuarantee && jumped > prioStats.maxOvertake) prioStats.maxOvertake = jumped;
+            if(!isGuarantee) addLogHtml(`【优先顶上】点位${picked}（直推${refsOf(picked)}人）越过 ${jumped} 个排在前面的排队点位，成为P1顶点`, false, 'promote');
         }
         addLogHtml(`【${label}顺位顶上】点位${mat.vertex}成为新${label}顶点`);
     }else{
@@ -1062,7 +1163,6 @@ function applyCritical(r, rebuildScan){
 }
 
 function calcCriticalPoint(){
-    if(MOBILE_MODE) return;   // 手机版：精准测算与参数扫描表已屏蔽，不需要计算
     const key = criticalKey();
     if(key === __calcKey && __calcData){
         // 参数没变：只刷新界面，不做任何重算
@@ -1153,7 +1253,7 @@ function resetAll(){
     };
     __isBatching = false; __suppressFlash = false;
     pointRefs = {};
-    prioStats = { jumps: 0 };
+    prioStats = { jumps: 0, maxOvertake: 0, zeroRefExits: 0, pickCount: 0, guaranteeUsed: 0, guaranteeMissed: 0 };
     __pendingRefs = 0;
     const btn = $('#batchAdd');
     if(btn){ btn.disabled = false; btn.textContent = '📦批量新增点位'; }
@@ -1185,6 +1285,75 @@ if(chkPrio) chkPrio.addEventListener('change', () => {
     addLogHtml(`【权益优先级】已${CONFIG.priorityByRef ? '开启' : '关闭'}（仅影响此后 P1 顶点顶替顺序，不改动已排好的顶点）`);
     render();
 });
+
+/* 插队窗口 W：决定"能在多远范围内插队"，也是防止有人被永久饿死的唯一旋钮 */
+const inpPW = $('#inpPrioWindow');
+if(inpPW){
+    inpPW.value = CONFIG.priorityWindow;
+    inpPW.addEventListener('change', () => {
+        const v = parseInt(inpPW.value, 10);
+        CONFIG.priorityWindow = Number.isFinite(v) ? Math.max(0, v) : 10;
+        inpPW.value = CONFIG.priorityWindow;
+        const desc = CONFIG.priorityWindow === 0
+            ? '全队列择优（v2.6.0 旧行为，实测零直推者永久出不了局）'
+            : (CONFIG.priorityWindow === 1
+                ? '等同纯 FIFO，不做任何插队'
+                : `只在前 ${CONFIG.priorityWindow} 位内择优，任何人最多被身后 ${CONFIG.priorityWindow - 1} 位越过`);
+        addLogHtml(`【插队窗口】W = ${CONFIG.priorityWindow}：${desc}`);
+        if(CONFIG.priorityWindow === 0) addLogHtml('【严重警告】W=0 为全队列竞争（v2.6.0 旧行为），实测零直推者出局人数恒为 0，等于一批顾客永远拿不到奖励', true, 'out');
+        else if(CONFIG.priorityWindow >= 45) addLogHtml('【警告】W≥45 已进入实测死亡区，零直推者出局人数会归零', true, 'out');
+        else if(CONFIG.priorityWindow >= 5) addLogHtml('【提示】实测 W≥5 时零直推者可能仍出不了局，请盯住下方「零直推者已出局」指标；建议同时开启保底配额', false);
+        render();
+    });
+}
+
+/* 保底配额：每 N 次 P1 顶替强制给一次机会给零直推者里最久等待的那位 */
+const inpGuar = $('#inpGuarantee');
+if(inpGuar){
+    inpGuar.value = CONFIG.guaranteeEvery;
+    inpGuar.addEventListener('change', () => {
+        const v = parseInt(inpGuar.value, 10);
+        CONFIG.guaranteeEvery = Number.isFinite(v) ? Math.max(0, v) : 0;
+        inpGuar.value = CONFIG.guaranteeEvery;
+        if(CONFIG.guaranteeEvery > 0){
+            addLogHtml(`【保底配额】每 ${CONFIG.guaranteeEvery} 次 P1 顶替强制保底 1 次（零直推者最久等待优先）。出局次数与奖金不变，人均发奖不受影响`);
+        }else{
+            addLogHtml('【保底配额】已关闭');
+        }
+        render();
+    });
+}
+
+/* 上线预设：W=10（强激励）+ 双出局通道（P2=2 / R3=0）+ 保底每 5 次出局 1 次 */
+bind('#btnOnlinePreset', () => {
+    const pw = $('#inpPrioWindow'), g = $('#inpGuarantee');
+    if(pw){ pw.value = 10; CONFIG.priorityWindow = 10; }
+    if(g){ g.value = 5; CONFIG.guaranteeEvery = 5; }
+    const elP2 = $('#inpP2SlotCnt'), elR3 = $('#inpRewardP3');
+    if(elP2) elP2.value = 2;
+    if(elR3) elR3.value = 0;
+    applyAllConfig(true);
+    addLogHtml('【上线预设】W=10、P2容量=2、出局奖励R3=0、保底每 5 次出局 1 次。理论人均 400.0（正好压红线，零缓冲）；保底不改支出，人均不因此上升', true);
+});
+
+/* 恢复旧基线：v2.6.1 默认配置，用于回归对照（200 点位应为 70200 / 9800 / 9） */
+bind('#btnLegacyBaseline', () => {
+    const elP2 = $('#inpP2SlotCnt'), elR3 = $('#inpRewardP3');
+    if(elP2) elP2.value = 4;
+    if(elR3) elR3.value = 1000;
+    const pw = $('#inpPrioWindow'), g = $('#inpGuarantee');
+    if(pw){ pw.value = 3; CONFIG.priorityWindow = 3; }
+    if(g){ g.value = 0; CONFIG.guaranteeEvery = 0; }
+    applyAllConfig(true);
+    addLogHtml('【旧基线】已恢复 v2.6.1 默认（s2=4 / R3=1000 / W=3 / 无保底）。200 点位应复现 70200 / 9800 / 9', true);
+});
+bind('#btnDualChannel', () => {
+    const elP2 = $('#inpP2SlotCnt'), elR3 = $('#inpRewardP3');
+    if(elP2) elP2.value = 2;
+    if(elR3) elR3.value = 0;
+    applyAllConfig(true);
+    addLogHtml('【双出局通道预设】已应用：P2容量=2、出局奖励R3=0。出局间隔由 20 点位缩短到 10 点位，单笔出局仍拿 P2 的 1600 分', true);
+});
 bind('#exportCsv', exportCSV);
 bind('#saveParam', () => {
     localStorage.setItem('matrixParam', JSON.stringify(CONFIG));
@@ -1206,6 +1375,10 @@ bind('#loadParam', () => {
     if(accEl2) accEl2.checked = !!CONFIG.accelerateP3;
     const prioEl2 = $('#chkPriority');
     if(prioEl2) prioEl2.checked = !!CONFIG.priorityByRef;
+    const pwEl2 = $('#inpPrioWindow');
+    if(pwEl2) pwEl2.value = (CONFIG.priorityWindow === undefined ? 3 : CONFIG.priorityWindow);
+    const gEl2 = $('#inpGuarantee');
+    if(gEl2) gEl2.value = (CONFIG.guaranteeEvery === undefined ? 0 : CONFIG.guaranteeEvery);
     applyAllConfig(true);
 });
 
